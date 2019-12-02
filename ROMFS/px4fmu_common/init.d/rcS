@@ -319,6 +319,40 @@ else
 	then
 		rc_input start
 	fi
+	
+	#
+	# Check if UAVCAN is enabled, default to it for ESCs.
+	#
+	if param greater UAVCAN_ENABLE 0
+	then
+		# Start core UAVCAN module.
+		if uavcan start
+		then
+			if param greater UAVCAN_ENABLE 1
+			then
+				# Start UAVCAN firmware update server and dynamic node ID allocation server.
+				uavcan start fw
+
+				if param greater UAVCAN_ENABLE 2
+				then
+					set OUTPUT_MODE uavcan_esc
+				fi
+			fi
+		else
+			# Error tune.
+			tune_control play -t 2
+		fi
+	fi
+	
+	usleep 10000000
+	# 10 second delay
+	
+	#
+	# Moving UAVCAN init before sensors with a delay between
+	# Intended to eliminate race condition between UAVCAN magnometer init and start of the sensors system
+	# This should allow for the preflight check to run properly
+	# GNSS bootloader should take between 6 and 8 seconds to finish per Zubax documentation
+	#
 
 	#
 	# Sensors System (start before Commander so Preflight checks are properly run).
@@ -375,29 +409,6 @@ else
 		camera_feedback start
 	fi
 
-	#
-	# Check if UAVCAN is enabled, default to it for ESCs.
-	#
-	if param greater UAVCAN_ENABLE 0
-	then
-		# Start core UAVCAN module.
-		if uavcan start
-		then
-			if param greater UAVCAN_ENABLE 1
-			then
-				# Start UAVCAN firmware update server and dynamic node ID allocation server.
-				uavcan start fw
-
-				if param greater UAVCAN_ENABLE 2
-				then
-					set OUTPUT_MODE uavcan_esc
-				fi
-			fi
-		else
-			# Error tune.
-			tune_control play -t 2
-		fi
-	fi
 
 	#
 	# Start mavlink streams that are not configurable (e.g. on USB).
